@@ -1,5 +1,5 @@
-# 1. database.py (데이터 파이프라인)
-# 모든 DB 요청은 여기서 처리합니다.
+# database.py (데이터 파이프라인)
+# Supabase와의 통신을 전담합니다. (ID 101부터 시작하는 숫자 체계 반영)
 
 # 본인의 Supabase 설정 정보 (프로젝트 세팅에서 확인 가능)
 # SUPABASE_URL = "https://nhczyfpzdyacjuosasaj.supabase.co"
