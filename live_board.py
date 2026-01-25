@@ -1,60 +1,9 @@
-# 3. live_board.py (라이브 상황실)
-# 실제 현장에서 콕을 내고 대기 시간을 보며 대진을 짜는 화면입니다.
-
-import streamlit as st
-import database as db
-from datetime import datetime
-import os
-
-st.set_page_config(layout="wide")
-
-# 스타일 설정
-st.markdown("""
-    <style>
-    section[data-testid="stSidebar"] { width: 350px !important; background-color: #245c4b; padding-top: 10px !important; }
-    .magnet {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        width: 92%; height: 50px; border-radius: 6px; margin: 4px auto;
-        box-shadow: 1px 1px 3px rgba(0,0,0,0.2); border: 1.5px solid #fff; background-color: white;
-    }
-    .mag-text { font-size: 14px; font-weight: 700; color: #222; }
-    .wait-time { font-size: 10px; color: #d81b60; font-weight: bold; }
-    </style>
-    """, unsafe_allow_html=True)
-
-if 'waiting_list' not in st.session_state: st.session_state.waiting_list = []
-
-with st.sidebar:
-    # 밴드 커버 (50% 크기)
-    if os.path.exists("img/band_cover.jpg"):
-        st.image("img/band_cover.jpg", use_container_width=True)
-    
-    st.markdown("### ⏳ 실시간 대기 현황 (콕 낸 순서)")
-    # 대기 명단 출력 로직
-    for p in st.session_state.waiting_list:
-        wait_min = int((datetime.now() - p['check_in']).total_seconds() / 60)
-        st.markdown(f"<div class='magnet'><div class='mag-text'>{p['name']}</div><div class='wait-time'>{wait_min}분 대기</div></div>", unsafe_allow_html=True)
-
-    st.write("---")
-    with st.expander("📝 사전 접수자 (도착 확인)", expanded=True):
-        # 임시 데이터 (나중에 DB와 연동)
-        pre_list = [{"id": 1, "name": "홍길동", "rank": "A"}, {"id": 2, "name": "김철수", "rank": "B"}]
-        for m in pre_list:
-            if st.button(f"🏸 {m['name']} 도착", key=f"in_{m['id']}", use_container_width=True):
-                m['check_in'] = datetime.now()
-                st.session_state.waiting_list.append(m)
-                st.rerun()
-
-st.title("🏟️ 라이브 상황실")
-# 코트 현황 및 수기 대진 로직...
-
 import streamlit as st
 import database as db
 from datetime import datetime
 import os
 
 def show_live():
-    # 스타일 설정 (사이드바 폭 및 자석 디자인)
     st.markdown("""
         <style>
         section[data-testid="stSidebar"] { width: 350px !important; background-color: #245c4b; padding-top: 10px !important; }
@@ -66,38 +15,80 @@ def show_live():
         }
         .mag-text { font-size: 14px; font-weight: 700; color: #222; }
         .wait-tag { font-size: 10px; color: #d81b60; margin-left: 5px; }
+        .court-card {
+            background-color: white; border-radius: 12px; padding: 15px;
+            border: 1px solid #ddd; text-align: center; margin-bottom: 20px;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     # 세션 상태 초기화
     if 'waiting_list' not in st.session_state: st.session_state.waiting_list = []
+    if 'court_status' not in st.session_state:
+        st.session_state.court_status = {5: [], 6: [], 7: [], 9: []}
 
-    # --- [사이드바: 현장 도착 확인] ---
+    # --- [사이드바: 대기열 관리] ---
     with st.sidebar:
         if os.path.exists("img/band_cover.jpg"):
             st.image("img/band_cover.jpg", use_container_width=True)
         
-        st.markdown("<h3 style='color:white;'>⏳ 대기 중 (콕 낸 순서)</h3>", unsafe_allow_html=True)
-        # 대기 자석 표시
-        for p in st.session_state.waiting_list:
+        st.markdown("<h3 style='color:white;'>⏳ 실시간 대기</h3>", unsafe_allow_html=True)
+        
+        # 대기 중인 자석 리스트
+        for idx, p in enumerate(st.session_state.waiting_list):
             wait_min = int((datetime.now() - p['check_in']).total_seconds() / 60)
-            st.markdown(f"<div class='magnet rank-a'><span class='mag-text'>{p['name']}</span><span class='wait-tag'>{wait_min}분</span></div>", unsafe_allow_html=True)
+            cols = st.columns([3, 1])
+            with cols[0]:
+                st.markdown(f"<div class='magnet rank-a'><span class='mag-text'>{p['name']}</span><span class='wait-tag'>{wait_min}분</span></div>", unsafe_allow_html=True)
+            with cols[1]:
+                # 코트 배정 버튼
+                if st.button("배정", key=f"assign_{idx}"):
+                    st.session_state.selected_player = (idx, p)
+                    st.toast(f"{p['name']} 선수를 배정할 코트를 선택하세요.")
 
         st.divider()
-        with st.expander("🙋 사전 접수자 (도착 확인)", expanded=True):
-            # 임시 데이터 (DB 연동 시 db.get_members() 사용)
+        with st.expander("🙋 도착 확인 (콕 내기)", expanded=True):
             members = db.get_members()
             for m in members:
-                if not any(w['id'] == m['id'] for w in st.session_state.waiting_list):
-                    label = f"🏸 {m['name']}{str(m.get('birth',''))[-2:]}{m.get('rank','')}"
-                    if st.button(label, key=f"btn_{m['id']}", use_container_width=True):
+                if not any(w['id'] == m['id'] for w in st.session_state.waiting_list) and \
+                   not any(m['id'] in [u['id'] for u in players] for players in st.session_state.court_status.values()):
+                    if st.button(f"🏸 {m['name']}", key=f"btn_{m['id']}", use_container_width=True):
                         m['check_in'] = datetime.now()
                         st.session_state.waiting_list.append(m)
                         st.rerun()
 
-    # --- [메인: 코트 현황] ---
+    # --- [메인: 라이브 코트 상황판] ---
     st.title("🏟️ 라이브 상황실")
-    # 여기에 코트 5, 6, 7, 9번 그리드 배치 및 수기 매칭 로직 추가
+    
+    c_cols = st.columns(4)
+    courts = [5, 6, 7, 9]
+
+    for i, c_num in enumerate(courts):
+        with c_cols[i]:
+            st.markdown(f"<div class='court-card'>", unsafe_allow_html=True)
+            st.subheader(f"{c_num}번 코트")
+            
+            current_players = st.session_state.court_status[c_num]
+            
+            # 코트 내 자리 (4자리) 표시
+            for slot in range(4):
+                if slot < len(current_players):
+                    p = current_players[slot]
+                    st.markdown(f"<div class='magnet rank-b'>{p['name']}</div>", unsafe_allow_html=True)
+                else:
+                    if st.button(f"빈자리 {slot+1}", key=f"slot_{c_num}_{slot}"):
+                        if 'selected_player' in st.session_state:
+                            idx, p_data = st.session_state.selected_player
+                            st.session_state.court_status[c_num].append(p_data)
+                            st.session_state.waiting_list.pop(idx) # 대기열에서 삭제
+                            del st.session_state.selected_player
+                            st.rerun()
+            
+            if len(current_players) > 0:
+                if st.button("경기 종료", key=f"end_{c_num}"):
+                    st.session_state.court_status[c_num] = []
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     show_live()
