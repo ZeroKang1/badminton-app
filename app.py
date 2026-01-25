@@ -9,3 +9,5 @@ if page == "상황실 (Live)":
     show_live()
 else:
     show_admin()
+
+# streamlit run app.py
