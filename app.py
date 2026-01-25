@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pandas as pd
 from datetime import datetime
 import database as db
@@ -10,29 +11,74 @@ st.set_page_config(layout="wide", page_title="여민소 민턴 전광판")
 # 2. 스타일 (기존 스타일 유지 및 대기시간 텍스트 추가)
 st.markdown("""
     <style>
-    section[data-testid="stSidebar"] { width: 350px !important; background-color: #245c4b; }
-    .stApp { background-color: #f8f9fa; } 
-    .magnet {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        width: 92%; height: 50px; border-radius: 6px; margin: 4px auto;
-        box-shadow: 1px 1px 3px rgba(0,0,0,0.2); border: 1.5px solid #fff; background-color: white;
+    /* 사이드바 최상단 여백 줄이기 (약 3mm) */
+    .st-emotion-cache-16txm9y, .st-emotion-cache-6qob1r {
+        padding-top: 10px !important; /* 약 3mm 효과 */
     }
-    .mag-text { font-size: 15px; font-weight: 700; color: #222; }
-    .wait-time { font-size: 10px; color: #d81b60; font-weight: bold; margin-top: -2px; }
 
-    /* 급수별 색상 */
-    .rank-s { background-color: #ffcdd2; border-color: #e57373; }
-    .rank-a { background-color: #ffe0b2; border-color: #ffb74d; }
-    .rank-b { background-color: #fff9c4; border-color: #fff176; }
-    .rank-c { background-color: #c8e6c9; border-color: #81c784; }
-    .rank-d { background-color: #bbdefb; border-color: #64b5f6; }
-    .rank-begin { background-color: #e1bee7; border-color: #ba68c8; }
+    /* 이미지 컨테이너: 중앙 정렬 및 크기 조절 */
+    .sidebar-img-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    .sidebar-img-container img {
+        width: 90%; /* 너비 90%로 축소 */
+        border-radius: 10px; /* 약간의 라운드 처리 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- [좌측 사이드바: 자석 관리] ---
+# --- [좌측 사이드바 구성] ---
 with st.sidebar:
-    st.markdown("<h2 style='color: white; text-align: center;'>🌸 여민소 & 민턴</h2>", unsafe_allow_html=True)
+    # 1. 밴드 커버 이미지 (50% 크기 중앙 정렬)
+    img_path = "img/band1-여민소.png"
+    try:
+        # 이미지를 HTML로 감싸서 크기와 정렬을 세밀하게 제어
+        import base64
+        def get_image_base64(path):
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+        
+        if os.path.exists(img_path):
+            img_base64 = get_image_base64(img_path)
+            st.markdown(f"""
+                <div class="sidebar-img-container">
+                    <img src="data:image/jpg;base64,{img_base64}">
+                </div>
+                """, unsafe_allow_html=True)
+    except Exception as e:
+        st.markdown("<h2 style='text-align: center; color: white;'>🌸 여민소 & 민턴</h2>", unsafe_allow_html=True)
+
+
+  # --- [사이드바 하단: 참가 접수자 목록] ---
+with st.sidebar.expander("📝 사전 접수자 (도착 확인)", expanded=True):
+    # status가 '접수'인 인원만 표시
+    pre_registered = [p for p in st.session_state.all_members if p['status'] == '접수']
+    
+    for m in pre_registered:
+        # 버튼에 이름생년급수 표기
+        btn_label = f"{m['name']}{str(m['birth'])[-2:]}{m['rank']}"
+        if st.button(f"🏸 {btn_label} 도착", key=f"arrival_{m['id']}", use_container_width=True):
+            # 1. 상태를 '도착'으로 변경
+            # 2. 대기 시간(check_in)을 현재 시간으로 기록
+            m['check_in'] = datetime.now()
+            st.session_state.waiting_list.append(m)
+            # DB 업데이트 로직 (status='도착'으로 update)
+            st.rerun()
+
+    # --- [사이드바 상단: 실시간 대기 명단] ---
+    st.sidebar.markdown("### ⏳ 실시간 대기 현황")
+    waiting_list = st.session_state.get('waiting_list', [])
+
+    # 대기 시간이 긴 순서로 정렬하여 표시
+    sorted_waiting = sorted(waiting_list, key=lambda x: x['check_in'])
+
+    for i in range(0, len(sorted_waiting), 3):
+        cols = st.sidebar.columns(3)
+        # (자석 이름표 UI 로직 적용...)
+
     st.divider()
     
     # 참석자 명단 및 대기시간 표시
