@@ -110,7 +110,7 @@ status 값:
 @st.cache_data(ttl=10)  # 10초 캐시 (라이브 데이터)
 def get_participants(session_id, status=None):
     """참가자 목록 조회 (모임별, 상태 필터링 옵션)"""
-    query = supabase.table("participants").select("*, members(*)").eq("session_id", session_id)
+    query = supabase.table("participants").select("*, members!participants_member_id_fkey(*)").eq("session_id", session_id)
     if status:
         if isinstance(status, list):
             query = query.in_("status", status)
@@ -120,7 +120,7 @@ def get_participants(session_id, status=None):
 
 def get_participant_by_id(participant_id):
     """참가자 상세 조회"""
-    res = supabase.table("participants").select("*, members(*)").eq("id", participant_id).single().execute()
+    res = supabase.table("participants").select("*, members!participants_member_id_fkey(*)").eq("id", participant_id).single().execute()
     return res.data
 
 def create_participant(session_id, member_id, status="registered"):
