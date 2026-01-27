@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import database as db
 from datetime import datetime
 import time
@@ -9,119 +8,6 @@ import time
 # ============================================================
 APP_NAME = "소꾹"  # 배드민턴 소모임 위꾹
 REFRESH_INTERVAL = 10  # 자동 새로고침 간격 (초)
-
-# ============================================================
-# CSS 스타일 정의 (3가지 모드) - 최적화
-# ============================================================
-
-def get_magnet_style():
-    """자석모드 CSS"""
-    return """<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-* { font-family: 'Noto Sans KR', sans-serif; }
-.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
-    :root {
-        --board-bg: #2d5a27;
-        --court-bg: #1e3d1a;
-        --male-color: #1565c0;
-        --female-color: #c62828;
-    }
-    .stApp { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
-    .live-header {
-        background: linear-gradient(90deg, var(--board-bg), #1e4620);
-        color: white; padding: 12px 20px; border-radius: 10px;
-        margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .court-box {
-        background: var(--court-bg); border: 2px solid #4caf50;
-        border-radius: 12px; padding: 12px; margin: 5px;
-        min-height: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .court-title { color: #81c784; font-size: 16px; font-weight: 700; text-align: center; }
-    .court-timer { color: #ffeb3b; font-size: 13px; text-align: center; font-family: monospace; }
-    .magnet {
-        display: inline-flex; flex-direction: column; align-items: center;
-        justify-content: center; width: 75px; height: 55px; border-radius: 8px;
-        margin: 3px; font-weight: 600; box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
-        border: 2px solid rgba(255,255,255,0.3);
-    }
-    .magnet-male { background: linear-gradient(145deg, #42a5f5, #1565c0); color: white; }
-    .magnet-female { background: linear-gradient(145deg, #ef5350, #c62828); color: white; }
-    .magnet-empty { background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); color: rgba(255,255,255,0.4); }
-    .magnet-name { font-size: 12px; font-weight: 700; }
-    .magnet-info { font-size: 10px; opacity: 0.9; }
-    .vs-text { color: #ffeb3b; font-size: 14px; font-weight: bold; text-align: center; margin: 8px 0; }
-    .queue-box {
-        background: linear-gradient(145deg, #455a64, #37474f);
-        border: 2px solid #607d8b; border-radius: 10px; padding: 10px; margin: 5px;
-        min-height: 140px;
-    }
-    .queue-title { color: #90caf9; font-size: 13px; font-weight: 600; text-align: center; }
-    .pool-box {
-        background: linear-gradient(145deg, #263238, #1c252a);
-        border-radius: 10px; padding: 12px; margin: 8px 0;
-    }
-    .pool-title { color: #80cbc4; font-size: 13px; font-weight: 600; border-bottom: 1px solid #37474f; padding-bottom: 8px; margin-bottom: 10px; }
-    </style>
-    """
-
-def get_list_style():
-    """리스트모드 CSS"""
-    return """<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-* { font-family: 'Noto Sans KR', sans-serif; }
-.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
-.stApp { background-color: #f5f5f5; }
-.live-header { background: white; color: #333; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #1976d2; }
-.section-box { background: white; border-radius: 8px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.chip-male { background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
-.chip-female { background: #fce4ec; color: #c62828; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
-</style>"""
-
-def get_led_style():
-    """전광판모드 CSS"""
-    return """<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-* { font-family: 'Noto Sans KR', sans-serif; }
-.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
-.stApp { background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%); }
-.live-header { background: #000; color: #00ff00; padding: 15px 25px; border: 2px solid #00ff00; margin-bottom: 20px; font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px #00ff00; box-shadow: 0 0 20px rgba(0,255,0,0.3); }
-.led-court { background: #000; border: 3px solid #00ff00; border-radius: 5px; padding: 15px; margin: 8px; box-shadow: 0 0 20px rgba(0,255,0,0.2); }
-.led-title { font-family: 'Orbitron'; color: #00ff00; font-size: 20px; text-align: center; text-shadow: 0 0 10px #00ff00; }
-.led-timer { font-family: 'Orbitron'; color: #ff0000; font-size: 28px; text-align: center; text-shadow: 0 0 15px #ff0000; }
-.led-player { background: #111; border: 2px solid #00ff00; padding: 8px; margin: 4px; text-align: center; font-weight: 700; }
-.led-male { color: #00bfff; border-color: #00bfff; text-shadow: 0 0 8px #00bfff; }
-.led-female { color: #ff69b4; border-color: #ff69b4; text-shadow: 0 0 8px #ff69b4; }
-.led-vs { font-family: 'Orbitron'; color: #ffff00; font-size: 22px; text-align: center; text-shadow: 0 0 15px #ffff00; margin: 10px 0; }
-</style>"""
-
-# ============================================================
-# CSS 주입 함수 (JavaScript 사용)
-# ============================================================
-
-def inject_css(css_content):
-    """JavaScript를 통해 CSS를 부모 문서에 주입"""
-    # style 태그 제거 (순수 CSS만 추출)
-    css_clean = css_content.replace('<style>', '').replace('</style>', '').strip()
-    # JavaScript 문자열에서 특수문자 이스케이프
-    css_escaped = css_clean.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
-
-    js_code = """
-    <script>
-        (function() {
-            var existingStyle = window.parent.document.getElementById('custom-css');
-            if (existingStyle) {
-                existingStyle.remove();
-            }
-            var style = document.createElement('style');
-            style.id = 'custom-css';
-            style.textContent = `""" + css_escaped + """`;
-            window.parent.document.head.appendChild(style);
-        })();
-    </script>
-    """
-    components.html(js_code, height=0)
 
 # ============================================================
 # 헬퍼 함수
@@ -139,7 +25,7 @@ def get_elapsed_minutes(start_time_str):
         return 0
 
 def render_magnet(member, mode="magnet"):
-    """자석/칩 HTML 생성"""
+    """자석/칩 HTML 생성 (인라인 스타일)"""
     if not member:
         return ""
 
@@ -149,19 +35,27 @@ def render_magnet(member, mode="magnet"):
     gender = member.get('gender', '남')
 
     if mode == "magnet":
-        cls = "magnet-male" if gender == "남" else "magnet-female"
-        return f'<div class="magnet {cls}"><span class="magnet-name">{name}</span><span class="magnet-info">{birth}{rank}</span></div>'
+        bg = "linear-gradient(145deg, #42a5f5, #1565c0)" if gender == "남" else "linear-gradient(145deg, #ef5350, #c62828)"
+        return f'''<div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+            width:75px; height:55px; border-radius:8px; margin:3px; font-weight:600;
+            background:{bg}; color:white; box-shadow:2px 2px 6px rgba(0,0,0,0.4);">
+            <span style="font-size:12px; font-weight:700;">{name}</span>
+            <span style="font-size:10px; opacity:0.9;">{birth}{rank}</span></div>'''
     elif mode == "list":
-        cls = "chip-male" if gender == "남" else "chip-female"
-        return f'<span class="{cls}">{name}{birth}{rank}</span>'
+        bg = "#e3f2fd" if gender == "남" else "#fce4ec"
+        color = "#1565c0" if gender == "남" else "#c62828"
+        return f'<span style="background:{bg}; color:{color}; padding:3px 8px; border-radius:12px; font-size:12px; margin:2px; display:inline-block;">{name}{birth}{rank}</span>'
     else:  # led
-        cls = "led-male" if gender == "남" else "led-female"
-        return f'<div class="led-player {cls}">{name}{birth}{rank}</div>'
+        color = "#00bfff" if gender == "남" else "#ff69b4"
+        return f'<div style="background:#111; border:2px solid {color}; color:{color}; padding:8px; margin:4px; text-align:center; font-weight:700; text-shadow:0 0 8px {color};">{name}{birth}{rank}</div>'
 
 def render_empty_slot(mode="magnet"):
-    """빈 슬롯 HTML"""
+    """빈 슬롯 HTML (인라인 스타일)"""
     if mode == "magnet":
-        return '<div class="magnet magnet-empty"><span style="font-size:10px;">빈자리</span></div>'
+        return '''<div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+            width:75px; height:55px; border-radius:8px; margin:3px;
+            background:rgba(255,255,255,0.1); border:2px dashed rgba(255,255,255,0.3); color:rgba(255,255,255,0.4);">
+            <span style="font-size:10px;">빈자리</span></div>'''
     return ""
 
 # ============================================================
@@ -179,14 +73,7 @@ def show_live():
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = datetime.now()
 
-    # 모드별 CSS (JavaScript 주입)
     mode = st.session_state.view_mode
-    if mode == "magnet":
-        inject_css(get_magnet_style())
-    elif mode == "list":
-        inject_css(get_list_style())
-    else:
-        inject_css(get_led_style())
 
     # ===== 상단 컨트롤 =====
     col1, col2, col3, col4 = st.columns([2, 1.5, 1, 0.5])
@@ -229,7 +116,7 @@ def show_live():
     # ===== 헤더 정보 =====
     stats = db.get_session_stats(session_id)
     st.markdown(f'''
-    <div class="live-header">
+    <div style="background:linear-gradient(90deg, #2d5a27, #1e4620); color:white; padding:12px 20px; border-radius:10px; margin-bottom:15px; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
             <div><b>🏟️ {session_info.get('location', '체육관')}</b> <span style="opacity:0.7; margin-left:10px;">{session_info.get('date', '')}</span></div>
             <div>참석 <b>{stats['total_participants']}</b>명 (남{stats['male_count']}/여{stats['female_count']}) | 경기 <b>{stats['total_matches']}</b>회</div>
@@ -304,16 +191,16 @@ def render_magnet_mode(session_id, session_info):
                 elapsed = get_elapsed_minutes(start_time)
 
                 html = f'''
-                <div class="court-box">
-                    <div class="court-title">{court_name}번</div>
-                    <div class="court-timer">⏱️ {elapsed}분</div>
+                <div style="background:#1e3d1a; border:2px solid #4caf50; border-radius:12px; padding:12px; margin:5px; min-height:200px;">
+                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:center;">{court_name}번</div>
+                    <div style="color:#ffeb3b; font-size:13px; text-align:center; font-family:monospace;">⏱️ {elapsed}분</div>
                     <div style="display:flex; justify-content:center; flex-wrap:wrap;">
                 '''
                 for p in players[:2]:
                     html += render_magnet(p.get('members', {}), "magnet")
                 for _ in range(2 - len(players[:2])):
                     html += render_empty_slot("magnet")
-                html += '</div><div class="vs-text">VS</div><div style="display:flex; justify-content:center; flex-wrap:wrap;">'
+                html += '</div><div style="color:#ffeb3b; font-size:14px; font-weight:bold; text-align:center; margin:8px 0;">VS</div><div style="display:flex; justify-content:center; flex-wrap:wrap;">'
                 for p in players[2:4]:
                     html += render_magnet(p.get('members', {}), "magnet")
                 for _ in range(2 - len(players[2:4])):
@@ -327,8 +214,8 @@ def render_magnet_mode(session_id, session_info):
                     st.rerun()
             else:
                 st.markdown(f'''
-                <div class="court-box" style="opacity:0.5;">
-                    <div class="court-title">{court_name}번</div>
+                <div style="background:#1e3d1a; border:2px solid #4caf50; border-radius:12px; padding:12px; margin:5px; min-height:200px; opacity:0.5;">
+                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:center;">{court_name}번</div>
                     <div style="text-align:center; padding:30px 0; color:#81c784;">🏸 대기중</div>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -351,7 +238,7 @@ def render_magnet_mode(session_id, session_info):
         q_players = [p for p in waiting if p.get('queue_num') == q_num]
 
         with col:
-            html = f'<div class="queue-box"><div class="queue-title">대기{q_num}</div><div style="display:flex; flex-wrap:wrap; justify-content:center;">'
+            html = f'<div style="background:linear-gradient(145deg, #455a64, #37474f); border:2px solid #607d8b; border-radius:10px; padding:10px; margin:5px; min-height:140px;"><div style="color:#90caf9; font-size:13px; font-weight:600; text-align:center;">대기{q_num}</div><div style="display:flex; flex-wrap:wrap; justify-content:center;">'
             for p in q_players[:4]:
                 html += render_magnet(p.get('members', {}), "magnet")
             for _ in range(4 - min(len(q_players), 4)):
@@ -366,7 +253,7 @@ def render_magnet_mode(session_id, session_info):
     c1, c2, c3 = st.columns([2, 1, 1])
 
     with c1:
-        st.markdown(f'<div class="pool-box"><div class="pool-title">✅ 출석완료 ({len(checked_in)}명)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(145deg, #263238, #1c252a); border-radius:10px; padding:12px; margin:8px 0;"><div style="color:#80cbc4; font-size:13px; font-weight:600; border-bottom:1px solid #37474f; padding-bottom:8px; margin-bottom:10px;">✅ 출석완료 ({len(checked_in)}명)</div></div>', unsafe_allow_html=True)
 
         if checked_in:
             # 선택 상태를 세션에서 관리
@@ -402,7 +289,7 @@ def render_magnet_mode(session_id, session_info):
             st.info("출석 완료된 선수 없음")
 
     with c2:
-        st.markdown(f'<div class="pool-box"><div class="pool-title">☕ 휴식 ({len(resting)}명)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(145deg, #263238, #1c252a); border-radius:10px; padding:12px; margin:8px 0;"><div style="color:#80cbc4; font-size:13px; font-weight:600; border-bottom:1px solid #37474f; padding-bottom:8px; margin-bottom:10px;">☕ 휴식 ({len(resting)}명)</div></div>', unsafe_allow_html=True)
         for p in resting[:5]:
             member = p.get('members', {})
             col_a, col_b = st.columns([3, 1])
@@ -414,7 +301,7 @@ def render_magnet_mode(session_id, session_info):
                     st.rerun()
 
     with c3:
-        st.markdown(f'<div class="pool-box"><div class="pool-title">🚪 퇴장 ({len(left_players)}명)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(145deg, #263238, #1c252a); border-radius:10px; padding:12px; margin:8px 0;"><div style="color:#80cbc4; font-size:13px; font-weight:600; border-bottom:1px solid #37474f; padding-bottom:8px; margin-bottom:10px;">🚪 퇴장 ({len(left_players)}명)</div></div>', unsafe_allow_html=True)
         for p in left_players[:5]:
             st.write(db.format_player_name(p.get('members', {})))
 
@@ -528,13 +415,13 @@ def render_led_mode(session_id, session_info):
             if players:
                 elapsed = get_elapsed_minutes(players[0].get('game_start_time'))
                 html = f'''
-                <div class="led-court">
-                    <div class="led-title">COURT {court_num}</div>
-                    <div class="led-timer">{elapsed:02d}:00</div>
+                <div style="background:#000; border:3px solid #00ff00; border-radius:5px; padding:15px; margin:8px; box-shadow:0 0 20px rgba(0,255,0,0.2);">
+                    <div style="font-family:Orbitron,sans-serif; color:#00ff00; font-size:20px; text-align:center; text-shadow:0 0 10px #00ff00;">COURT {court_num}</div>
+                    <div style="font-family:Orbitron,sans-serif; color:#ff0000; font-size:28px; text-align:center; text-shadow:0 0 15px #ff0000;">{elapsed:02d}:00</div>
                 '''
                 for p in players[:2]:
                     html += render_magnet(p.get('members', {}), "led")
-                html += '<div class="led-vs">⚡ VS ⚡</div>'
+                html += '<div style="font-family:Orbitron,sans-serif; color:#ffff00; font-size:22px; text-align:center; text-shadow:0 0 15px #ffff00; margin:10px 0;">⚡ VS ⚡</div>'
                 for p in players[2:4]:
                     html += render_magnet(p.get('members', {}), "led")
                 html += '</div>'
@@ -546,8 +433,8 @@ def render_led_mode(session_id, session_info):
                     st.rerun()
             else:
                 st.markdown(f'''
-                <div class="led-court" style="opacity:0.4;">
-                    <div class="led-title">COURT {court_num}</div>
+                <div style="background:#000; border:3px solid #00ff00; border-radius:5px; padding:15px; margin:8px; box-shadow:0 0 20px rgba(0,255,0,0.2); opacity:0.4;">
+                    <div style="font-family:Orbitron,sans-serif; color:#00ff00; font-size:20px; text-align:center; text-shadow:0 0 10px #00ff00;">COURT {court_num}</div>
                     <div style="text-align:center; padding:40px 0; color:#00ff00;">READY</div>
                 </div>
                 ''', unsafe_allow_html=True)
