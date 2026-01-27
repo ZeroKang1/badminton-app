@@ -224,7 +224,7 @@ def render_member_tab():
 
 
 def render_session_tab():
-    """모임 관리 탭 - CRUD 지원"""
+    """모임 관리 탭 - CRUD 지원 (전체 필드)"""
 
     sessions = db.get_sessions(limit=20)
 
@@ -242,8 +242,12 @@ def render_session_tab():
         if edit_mode == "조회만":
             data = [{
                 "ID": s['id'],
+                "제목": s.get('title', ''),
                 "날짜": s.get('date', ''),
+                "시작": s.get('start_time', ''),
+                "종료": s.get('end_time', ''),
                 "장소": s.get('location', ''),
+                "코트": s.get('courts_count', 0),
                 "그룹": s.get('group_name', ''),
                 "상태": "🟢" if s.get('date') == str(datetime.now().date()) else "⚪"
             } for s in sessions]
@@ -258,18 +262,43 @@ def render_session_tab():
             if selected_session:
                 with st.form("edit_session_form"):
                     st.markdown(f"**모임 정보 수정**")
-                    ec1, ec2 = st.columns(2)
-                    edit_date = ec1.date_input("날짜", datetime.strptime(selected_session.get('date', str(datetime.now().date())), "%Y-%m-%d"))
-                    edit_loc = ec2.text_input("장소", value=selected_session.get('location', ''))
-                    edit_group = st.text_input("그룹", value=selected_session.get('group_name', ''))
+
+                    # 1행: 제목
+                    edit_title = st.text_input("제목", value=selected_session.get('title', ''))
+
+                    # 2행: 날짜, 시작, 종료
+                    r2c1, r2c2, r2c3 = st.columns(3)
+                    try:
+                        date_val = datetime.strptime(selected_session.get('date', str(datetime.now().date())), "%Y-%m-%d")
+                    except:
+                        date_val = datetime.now()
+                    edit_date = r2c1.date_input("날짜", date_val)
+                    edit_start = r2c2.text_input("시작시간", value=selected_session.get('start_time', '') or '')
+                    edit_end = r2c3.text_input("종료시간", value=selected_session.get('end_time', '') or '')
+
+                    # 3행: 장소, place, 코트수
+                    r3c1, r3c2, r3c3 = st.columns(3)
+                    edit_loc = r3c1.text_input("장소(location)", value=selected_session.get('location', ''))
+                    edit_place = r3c2.text_input("장소상세(place)", value=selected_session.get('place', '') or '')
+                    edit_courts = r3c3.number_input("코트수", min_value=0, max_value=20, value=selected_session.get('courts_count', 0) or 0)
+
+                    # 4행: 그룹, 메모
+                    r4c1, r4c2 = st.columns(2)
+                    edit_group = r4c1.text_input("그룹", value=selected_session.get('group_name', ''))
+                    edit_memo = r4c2.text_input("메모", value=selected_session.get('memo', '') or '')
 
                     col_save, col_del = st.columns(2)
                     if col_save.form_submit_button("💾 저장", type="primary"):
                         db.update_session(selected_id, {
-                            "title": f"{edit_date} {edit_loc}",
+                            "title": edit_title,
                             "date": str(edit_date),
+                            "start_time": edit_start or None,
+                            "end_time": edit_end or None,
                             "location": edit_loc,
-                            "group_name": edit_group
+                            "place": edit_place or None,
+                            "courts_count": edit_courts,
+                            "group_name": edit_group,
+                            "memo": edit_memo or None
                         })
                         st.success("모임 수정 완료!")
                         db.clear_cache()
@@ -286,17 +315,38 @@ def render_session_tab():
     if st.session_state.get("show_session"):
         with st.expander("🗓️ 새 모임 생성", expanded=True):
             with st.form("session_form"):
-                c1, c2 = st.columns(2)
-                s_date = c1.date_input("날짜", datetime.now())
-                s_loc = c2.text_input("장소", "영등포다목적체육관")
-                s_group = st.text_input("그룹", DEFAULT_GROUP)
+                # 1행: 제목
+                s_title = st.text_input("제목", placeholder="예: 1월 정기모임")
+
+                # 2행: 날짜, 시작, 종료
+                r2c1, r2c2, r2c3 = st.columns(3)
+                s_date = r2c1.date_input("날짜", datetime.now())
+                s_start = r2c2.text_input("시작시간", placeholder="18:00")
+                s_end = r2c3.text_input("종료시간", placeholder="22:00")
+
+                # 3행: 장소, place, 코트수
+                r3c1, r3c2, r3c3 = st.columns(3)
+                s_loc = r3c1.text_input("장소(location)", "영등포다목적체육관")
+                s_place = r3c2.text_input("장소상세(place)", placeholder="3층 배드민턴장")
+                s_courts = r3c3.number_input("코트수", min_value=1, max_value=20, value=4)
+
+                # 4행: 그룹, 메모
+                r4c1, r4c2 = st.columns(2)
+                s_group = r4c1.text_input("그룹", DEFAULT_GROUP)
+                s_memo = r4c2.text_input("메모", placeholder="특이사항")
 
                 if st.form_submit_button("생성", type="primary"):
+                    title = s_title if s_title else f"{s_date} {s_loc}"
                     db.create_session({
-                        "title": f"{s_date} {s_loc}",
+                        "title": title,
                         "date": str(s_date),
+                        "start_time": s_start or None,
+                        "end_time": s_end or None,
                         "location": s_loc,
-                        "group_name": s_group
+                        "place": s_place or None,
+                        "courts_count": s_courts,
+                        "group_name": s_group,
+                        "memo": s_memo or None
                     })
                     st.success("모임 생성 완료!")
                     st.session_state.show_session = False
