@@ -230,21 +230,27 @@ def render_magnet_mode(session_id, session_info):
 
     # ===== 대기열 =====
     st.markdown("---")
-    st.markdown("#### ⏳ 대기열")
+    st.markdown(f"#### ⏳ 대기열 ({len(waiting)}명)")
 
-    q_cols = st.columns(4)
-    for idx, col in enumerate(q_cols):
-        q_num = idx + 1
-        q_players = [p for p in waiting if p.get('queue_num') == q_num]
+    if waiting:
+        html = '<div style="background:linear-gradient(145deg, #455a64, #37474f); border:2px solid #607d8b; border-radius:10px; padding:15px; margin:5px;"><div style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;">'
+        for p in waiting:
+            html += render_magnet(p.get('members', {}), "magnet")
+        html += '</div></div>'
+        st.markdown(html, unsafe_allow_html=True)
 
-        with col:
-            html = f'<div style="background:linear-gradient(145deg, #455a64, #37474f); border:2px solid #607d8b; border-radius:10px; padding:10px; margin:5px; min-height:140px;"><div style="color:#90caf9; font-size:13px; font-weight:600; text-align:center;">대기{q_num}</div><div style="display:flex; flex-wrap:wrap; justify-content:center;">'
-            for p in q_players[:4]:
-                html += render_magnet(p.get('members', {}), "magnet")
-            for _ in range(4 - min(len(q_players), 4)):
-                html += render_empty_slot("magnet")
-            html += '</div></div>'
-            st.markdown(html, unsafe_allow_html=True)
+        # 대기열에서 코트 배정 버튼
+        if len(waiting) >= 4:
+            if st.button("▶ 대기열 → 빈코트 배정", use_container_width=True):
+                # 빈 코트 찾기
+                for court_num in court_names:
+                    if court_num not in courts or len(courts.get(court_num, [])) == 0:
+                        pids = [p['id'] for p in waiting[:4]]
+                        db.assign_to_court(pids, court_num)
+                        st.rerun()
+                        break
+    else:
+        st.info("대기 중인 선수 없음")
 
     # ===== 선수 풀 =====
     st.markdown("---")
@@ -273,7 +279,7 @@ def render_magnet_mode(session_id, session_info):
                 with bc1:
                     if st.button(f"🎮 대기열 ({len(selected)})", use_container_width=True):
                         for pid in selected:
-                            db.assign_to_queue(pid, 1)
+                            db.assign_to_queue(pid)
                         st.rerun()
                 with bc2:
                     if st.button("☕ 휴식", use_container_width=True):

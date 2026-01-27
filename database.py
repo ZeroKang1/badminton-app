@@ -209,13 +209,13 @@ def get_court_queue(session_id):
         queue[court].append(p)
     return queue
 
-def assign_to_queue(participant_id, queue_num):
-    """대기열에 배정"""
+def assign_to_queue(participant_id, court_num=None):
+    """대기열에 배정 (court_num으로 대기열 구분)"""
     clear_cache()
-    return supabase.table("participants").update({
-        "status": "waiting",
-        "queue_num": queue_num
-    }).eq("id", participant_id).execute()
+    data = {"status": "waiting"}
+    if court_num:
+        data["court_num"] = court_num
+    return supabase.table("participants").update(data).eq("id", participant_id).execute()
 
 def assign_to_court(participant_ids, court_num):
     """코트에 배정 (4명)"""
