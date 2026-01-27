@@ -304,10 +304,13 @@ def render_attendance_tab():
     # 멀티셀렉트로 간소화 (성능 개선)
     member_opts = {m['id']: f"{'🔵' if m.get('gender')=='남' else '🔴'} {db.format_player_name(m)}" for m in members}
 
+    # 기본값은 현재 옵션에 있는 것만 사용
+    valid_default = [mid for mid in attended_ids if mid in member_opts]
+
     selected = st.multiselect(
         "참가자 선택",
         options=list(member_opts.keys()),
-        default=list(attended_ids),
+        default=valid_default,
         format_func=lambda x: member_opts.get(x, str(x)),
         label_visibility="collapsed"
     )
