@@ -14,6 +14,11 @@ git push
 이제 파일 분리가 완료되었습니다! 어떤 파일의 세부 기능을 먼저 완성해 드릴까요? (예: live_board.py의 수기 대진 버튼 등)
 
 
+https://supabase.com/dashboard/project/nhczyfpzdyacjuosasaj?method=github
+
+
+git pull
+python -m streamlit run app.py
 
 이 테스트 버전의 작동 방식
 도착: 사이드바 하단에서 이름을 누르면 위쪽 대기열로 이동 (시간 카운트 시작).

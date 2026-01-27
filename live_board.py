@@ -143,8 +143,8 @@ def show_live():
 def render_magnet_mode(session_id, session_info):
     """자석 모드 렌더링 - 최적화"""
 
-    courts_num = session_info.get('courts_num', 4)
-    court_names = str(session_info.get('courts_names', '1,2,3,4')).split(',')
+    courts_count = session_info.get('courts_count', 4) or 4
+    court_names = [str(i) for i in range(1, courts_count + 1)]
 
     # 데이터 한 번에 로드
     all_participants = db.get_participants(session_id)
@@ -173,7 +173,7 @@ def render_magnet_mode(session_id, session_info):
 
     # ===== 코트 영역 =====
     st.markdown("#### 🏟️ 코트")
-    cols = st.columns(min(courts_num, 4))
+    cols = st.columns(min(courts_count, 4))
 
     for idx, col in enumerate(cols):
         if idx >= len(court_names):
@@ -319,7 +319,7 @@ def render_list_mode(session_id, session_info):
     """리스트 모드 - 최적화"""
     import pandas as pd
 
-    courts_num = session_info.get('courts_num', 4)
+    courts_count = session_info.get('courts_count', 4) or 4
     all_participants = db.get_participants(session_id)
 
     # 상태별 분류
