@@ -13,23 +13,12 @@ REFRESH_INTERVAL = 10  # 자동 새로고침 간격 (초)
 # CSS 스타일 정의 (3가지 모드) - 최적화
 # ============================================================
 
-def get_common_style():
-    return """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-    * { font-family: 'Noto Sans KR', sans-serif; }
-    .refresh-info {
-        position: fixed; top: 10px; right: 10px;
-        background: rgba(0,0,0,0.7); color: #4caf50;
-        padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000;
-    }
-    </style>
-    """
-
 def get_magnet_style():
     """자석모드 CSS"""
-    return get_common_style() + """
-    <style>
+    return """<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+* { font-family: 'Noto Sans KR', sans-serif; }
+.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
     :root {
         --board-bg: #2d5a27;
         --court-bg: #1e3d1a;
@@ -77,44 +66,34 @@ def get_magnet_style():
 
 def get_list_style():
     """리스트모드 CSS"""
-    return get_common_style() + """
-    <style>
-    .stApp { background-color: #f5f5f5; }
-    .live-header {
-        background: white; color: #333; padding: 12px 20px;
-        border-radius: 8px; margin-bottom: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #1976d2;
-    }
-    .section-box { background: white; border-radius: 8px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .chip-male { background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
-    .chip-female { background: #fce4ec; color: #c62828; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
-    </style>
-    """
+    return """<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+* { font-family: 'Noto Sans KR', sans-serif; }
+.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
+.stApp { background-color: #f5f5f5; }
+.live-header { background: white; color: #333; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #1976d2; }
+.section-box { background: white; border-radius: 8px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.chip-male { background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
+.chip-female { background: #fce4ec; color: #c62828; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
+</style>"""
 
 def get_led_style():
     """전광판모드 CSS"""
-    return get_common_style() + """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-    .stApp { background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%); }
-    .live-header {
-        background: #000; color: #00ff00; padding: 15px 25px;
-        border: 2px solid #00ff00; margin-bottom: 20px;
-        font-family: 'Orbitron', sans-serif;
-        text-shadow: 0 0 10px #00ff00; box-shadow: 0 0 20px rgba(0,255,0,0.3);
-    }
-    .led-court {
-        background: #000; border: 3px solid #00ff00; border-radius: 5px;
-        padding: 15px; margin: 8px; box-shadow: 0 0 20px rgba(0,255,0,0.2);
-    }
-    .led-title { font-family: 'Orbitron'; color: #00ff00; font-size: 20px; text-align: center; text-shadow: 0 0 10px #00ff00; }
-    .led-timer { font-family: 'Orbitron'; color: #ff0000; font-size: 28px; text-align: center; text-shadow: 0 0 15px #ff0000; }
-    .led-player { background: #111; border: 2px solid #00ff00; padding: 8px; margin: 4px; text-align: center; font-weight: 700; }
-    .led-male { color: #00bfff; border-color: #00bfff; text-shadow: 0 0 8px #00bfff; }
-    .led-female { color: #ff69b4; border-color: #ff69b4; text-shadow: 0 0 8px #ff69b4; }
-    .led-vs { font-family: 'Orbitron'; color: #ffff00; font-size: 22px; text-align: center; text-shadow: 0 0 15px #ffff00; margin: 10px 0; }
-    </style>
-    """
+    return """<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+* { font-family: 'Noto Sans KR', sans-serif; }
+.refresh-info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #4caf50; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000; }
+.stApp { background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%); }
+.live-header { background: #000; color: #00ff00; padding: 15px 25px; border: 2px solid #00ff00; margin-bottom: 20px; font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px #00ff00; box-shadow: 0 0 20px rgba(0,255,0,0.3); }
+.led-court { background: #000; border: 3px solid #00ff00; border-radius: 5px; padding: 15px; margin: 8px; box-shadow: 0 0 20px rgba(0,255,0,0.2); }
+.led-title { font-family: 'Orbitron'; color: #00ff00; font-size: 20px; text-align: center; text-shadow: 0 0 10px #00ff00; }
+.led-timer { font-family: 'Orbitron'; color: #ff0000; font-size: 28px; text-align: center; text-shadow: 0 0 15px #ff0000; }
+.led-player { background: #111; border: 2px solid #00ff00; padding: 8px; margin: 4px; text-align: center; font-weight: 700; }
+.led-male { color: #00bfff; border-color: #00bfff; text-shadow: 0 0 8px #00bfff; }
+.led-female { color: #ff69b4; border-color: #ff69b4; text-shadow: 0 0 8px #ff69b4; }
+.led-vs { font-family: 'Orbitron'; color: #ffff00; font-size: 22px; text-align: center; text-shadow: 0 0 15px #ffff00; margin: 10px 0; }
+</style>"""
 
 # ============================================================
 # 헬퍼 함수
