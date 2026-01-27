@@ -104,19 +104,21 @@ def inject_css(css_content):
     """JavaScript를 통해 CSS를 부모 문서에 주입"""
     # style 태그 제거 (순수 CSS만 추출)
     css_clean = css_content.replace('<style>', '').replace('</style>', '').strip()
+    # JavaScript 문자열에서 특수문자 이스케이프
+    css_escaped = css_clean.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
 
-    js_code = f"""
+    js_code = """
     <script>
-        (function() {{
+        (function() {
             var existingStyle = window.parent.document.getElementById('custom-css');
-            if (existingStyle) {{
+            if (existingStyle) {
                 existingStyle.remove();
-            }}
+            }
             var style = document.createElement('style');
             style.id = 'custom-css';
-            style.textContent = `{css_clean}`;
+            style.textContent = `""" + css_escaped + """`;
             window.parent.document.head.appendChild(style);
-        }})();
+        })();
     </script>
     """
     components.html(js_code, height=0)
