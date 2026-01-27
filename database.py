@@ -199,30 +199,19 @@ def update_match(match_id, data):
 # 대기열 관리 (Court Queue) - 세션 상태 기반
 # ============================================================
 def get_court_queue(session_id):
-    """코트별 대기열 조회 (court_num 기준)"""
-    participants = get_participants(session_id, status="waiting")
-    queue = {}
-    for p in participants:
-        court = p.get('court_num', 0)
-        if court not in queue:
-            queue[court] = []
-        queue[court].append(p)
-    return queue
+    """대기열 조회 (waiting 상태인 참가자)"""
+    return get_participants(session_id, status="waiting")
 
-def assign_to_queue(participant_id, court_num=None):
-    """대기열에 배정 (court_num으로 대기열 구분)"""
+def assign_to_queue(participant_id):
+    """대기열에 배정"""
     clear_cache()
-    data = {"status": "waiting"}
-    if court_num:
-        data["court_num"] = court_num
-    return supabase.table("participants").update(data).eq("id", participant_id).execute()
+    return supabase.table("participants").update({"status": "waiting"}).eq("id", participant_id).execute()
 
-def assign_to_court(participant_ids, court_num):
-    """코트에 배정 (4명)"""
+def assign_to_court(participant_ids):
+    """코트에 배정 (4명) - status만 변경"""
     clear_cache()
     return supabase.table("participants").update({
         "status": "playing",
-        "court_num": court_num,
         "game_start_time": datetime.now().isoformat()
     }).in_("id", participant_ids).execute()
 
@@ -231,7 +220,6 @@ def release_from_court(participant_ids):
     clear_cache()
     return supabase.table("participants").update({
         "status": "checked_in",
-        "court_num": None,
         "game_start_time": None
     }).in_("id", participant_ids).execute()
 

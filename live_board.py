@@ -223,7 +223,7 @@ def render_magnet_mode(session_id, session_info):
                 if st.button("▶ 배정", key=f"assign_{court_num}", use_container_width=True):
                     if len(checked_in) >= 4:
                         pids = [p['id'] for p in checked_in[:4]]
-                        db.assign_to_court(pids, court_num)
+                        db.assign_to_court(pids)
                         st.rerun()
                     else:
                         st.warning("4명 미만")
@@ -246,7 +246,7 @@ def render_magnet_mode(session_id, session_info):
                 for court_num in court_names:
                     if court_num not in courts or len(courts.get(court_num, [])) == 0:
                         pids = [p['id'] for p in waiting[:4]]
-                        db.assign_to_court(pids, court_num)
+                        db.assign_to_court(pids)
                         st.rerun()
                         break
     else:
@@ -366,7 +366,7 @@ def render_list_mode(session_id, session_info):
                 if st.button(f"▶ {court_num}번 배정", key=f"start_l_{court_num}", use_container_width=True):
                     if len(checked_in) >= 4:
                         pids = [p['id'] for p in checked_in[:4]]
-                        db.assign_to_court(pids, court_num)
+                        db.assign_to_court(pids)
                         st.rerun()
 
     # ===== 출석 완료 =====
