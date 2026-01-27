@@ -151,18 +151,18 @@ def show_live():
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = datetime.now()
 
-    # 모드별 CSS
+    # 모드별 CSS (st.html 사용)
     mode = st.session_state.view_mode
     if mode == "magnet":
-        st.markdown(get_magnet_style(), unsafe_allow_html=True)
+        st.html(get_magnet_style())
     elif mode == "list":
-        st.markdown(get_list_style(), unsafe_allow_html=True)
+        st.html(get_list_style())
     else:
-        st.markdown(get_led_style(), unsafe_allow_html=True)
+        st.html(get_led_style())
 
     # 자동 새로고침 표시
     if st.session_state.auto_refresh:
-        st.markdown(f'<div class="refresh-info">🔄 자동갱신 {REFRESH_INTERVAL}초</div>', unsafe_allow_html=True)
+        st.html(f'<div class="refresh-info">🔄 자동갱신 {REFRESH_INTERVAL}초</div>')
 
     # ===== 상단 컨트롤 =====
     col1, col2, col3, col4 = st.columns([2, 1.5, 1, 0.5])
