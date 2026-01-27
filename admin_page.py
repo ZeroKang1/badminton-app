@@ -113,7 +113,82 @@ def render_member_tab():
         ddf = fdf[cols].copy()
         ddf.columns = ['ID', '이름', '성별', '생년', '급수', '연락처', '그룹', '메모']
 
-        st.dataframe(ddf, use_container_width=True, hide_index=True, height=400)
+        # 수정 모드 선택
+        edit_mode = st.radio("수정 모드", ["조회만", "1건 수정", "N건 일괄수정"], horizontal=True, label_visibility="collapsed")
+
+        if edit_mode == "조회만":
+            st.dataframe(ddf, use_container_width=True, hide_index=True, height=400)
+
+        elif edit_mode == "1건 수정":
+            # 회원 선택
+            member_opts = {f"{m['name']} ({m.get('birth','')}{m.get('rank','')})": m['id'] for m in fdf.to_dict('records')}
+            selected_name = st.selectbox("수정할 회원 선택", list(member_opts.keys()))
+            selected_id = member_opts[selected_name]
+            selected_member = fdf[fdf['id'] == selected_id].iloc[0].to_dict()
+
+            with st.form("edit_single_form"):
+                st.markdown(f"**{selected_member['name']}** 정보 수정")
+                r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+                new_name = r1c1.text_input("이름", value=selected_member.get('name', ''))
+                new_gender = r1c2.selectbox("성별", ["남", "여"], index=0 if selected_member.get('gender') == '남' else 1)
+                new_birth = r1c3.text_input("생년", value=str(selected_member.get('birth', '') or ''))
+                rank_opts = ["A", "B", "C", "D", "초심"]
+                rank_idx = rank_opts.index(selected_member.get('rank', 'C')) if selected_member.get('rank') in rank_opts else 2
+                new_rank = r1c4.selectbox("급수", rank_opts, index=rank_idx)
+
+                r2c1, r2c2, r2c3 = st.columns(3)
+                new_phone = r2c1.text_input("연락처", value=selected_member.get('phone', '') or '')
+                new_group = r2c2.text_input("그룹", value=selected_member.get('group_name', '') or '')
+                new_memo = r2c3.text_input("메모", value=selected_member.get('memo', '') or '')
+
+                col_save, col_del = st.columns(2)
+                if col_save.form_submit_button("💾 저장", type="primary"):
+                    db.update_member(selected_id, {
+                        "name": new_name, "gender": new_gender, "birth": new_birth,
+                        "rank": new_rank, "phone": new_phone, "group_name": new_group, "memo": new_memo
+                    })
+                    st.success(f"'{new_name}' 수정 완료!")
+                    db.clear_cache()
+                    st.rerun()
+                if col_del.form_submit_button("🗑️ 삭제", type="secondary"):
+                    db.delete_member(selected_id)
+                    st.warning(f"'{selected_member['name']}' 삭제됨")
+                    db.clear_cache()
+                    st.rerun()
+
+        elif edit_mode == "N건 일괄수정":
+            st.info("일괄 수정할 회원을 선택하세요")
+            # 멀티셀렉트로 선택
+            member_opts = {f"{m['name']} ({m.get('birth','')}{m.get('rank','')})": m['id'] for m in fdf.to_dict('records')}
+            selected_names = st.multiselect("회원 선택", list(member_opts.keys()))
+            selected_ids = [member_opts[n] for n in selected_names]
+
+            if selected_ids:
+                st.write(f"**선택됨: {len(selected_ids)}명**")
+                with st.form("edit_bulk_form"):
+                    st.markdown("아래 값을 입력하면 선택한 회원 전체에 적용됩니다 (빈칸은 변경 안함)")
+                    bc1, bc2, bc3 = st.columns(3)
+                    bulk_rank = bc1.selectbox("급수 변경", ["변경안함", "A", "B", "C", "D", "초심"])
+                    bulk_group = bc2.text_input("그룹 변경", placeholder="입력시 일괄 적용")
+                    bulk_action = bc3.selectbox("일괄 작업", ["선택", "삭제"])
+
+                    if st.form_submit_button("✅ 일괄 적용", type="primary"):
+                        if bulk_action == "삭제":
+                            for mid in selected_ids:
+                                db.delete_member(mid)
+                            st.warning(f"{len(selected_ids)}명 삭제됨")
+                        else:
+                            update_data = {}
+                            if bulk_rank != "변경안함":
+                                update_data["rank"] = bulk_rank
+                            if bulk_group:
+                                update_data["group_name"] = bulk_group
+                            if update_data:
+                                for mid in selected_ids:
+                                    db.update_member(mid, update_data)
+                                st.success(f"{len(selected_ids)}명 수정 완료!")
+                        db.clear_cache()
+                        st.rerun()
     else:
         st.info("회원이 없습니다.")
 
