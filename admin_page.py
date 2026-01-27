@@ -166,11 +166,12 @@ def render_member_tab():
             if selected_ids:
                 st.write(f"**선택됨: {len(selected_ids)}명**")
                 with st.form("edit_bulk_form"):
-                    st.markdown("아래 값을 입력하면 선택한 회원 전체에 적용됩니다 (빈칸은 변경 안함)")
-                    bc1, bc2, bc3 = st.columns(3)
-                    bulk_rank = bc1.selectbox("급수 변경", ["변경안함", "A", "B", "C", "D", "초심"])
-                    bulk_group = bc2.text_input("그룹 변경", placeholder="입력시 일괄 적용")
-                    bulk_action = bc3.selectbox("일괄 작업", ["선택", "삭제"])
+                    st.markdown("아래 값을 입력하면 선택한 회원 전체에 적용됩니다 (변경안함/빈칸은 유지)")
+                    bc1, bc2, bc3, bc4 = st.columns(4)
+                    bulk_gender = bc1.selectbox("성별 변경", ["변경안함", "남", "여"])
+                    bulk_rank = bc2.selectbox("급수 변경", ["변경안함", "A", "B", "C", "D", "초심"])
+                    bulk_group = bc3.text_input("그룹 변경", placeholder="입력시 적용")
+                    bulk_action = bc4.selectbox("일괄 작업", ["수정", "삭제"])
 
                     if st.form_submit_button("✅ 일괄 적용", type="primary"):
                         if bulk_action == "삭제":
@@ -179,6 +180,8 @@ def render_member_tab():
                             st.warning(f"{len(selected_ids)}명 삭제됨")
                         else:
                             update_data = {}
+                            if bulk_gender != "변경안함":
+                                update_data["gender"] = bulk_gender
                             if bulk_rank != "변경안함":
                                 update_data["rank"] = bulk_rank
                             if bulk_group:
@@ -187,6 +190,8 @@ def render_member_tab():
                                 for mid in selected_ids:
                                     db.update_member(mid, update_data)
                                 st.success(f"{len(selected_ids)}명 수정 완료!")
+                            else:
+                                st.warning("변경할 항목을 선택하세요")
                         db.clear_cache()
                         st.rerun()
     else:
@@ -219,7 +224,7 @@ def render_member_tab():
 
 
 def render_session_tab():
-    """모임 관리 탭"""
+    """모임 관리 탭 - CRUD 지원"""
 
     sessions = db.get_sessions(limit=20)
 
@@ -231,15 +236,49 @@ def render_session_tab():
             st.session_state.show_session = True
 
     if sessions:
-        data = [{
-            "ID": s['id'],
-            "날짜": s.get('date', ''),
-            "장소": s.get('location', ''),
-            "코트": s.get('courts_num', 0),
-            "상태": "🟢" if s.get('date') == str(datetime.now().date()) else "⚪"
-        } for s in sessions]
+        # 수정 모드 선택
+        edit_mode = st.radio("모드", ["조회만", "수정/삭제"], horizontal=True, label_visibility="collapsed", key="session_edit_mode")
 
-        st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+        if edit_mode == "조회만":
+            data = [{
+                "ID": s['id'],
+                "날짜": s.get('date', ''),
+                "장소": s.get('location', ''),
+                "그룹": s.get('group_name', ''),
+                "상태": "🟢" if s.get('date') == str(datetime.now().date()) else "⚪"
+            } for s in sessions]
+            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+        else:
+            # 모임 선택 및 수정
+            session_opts = {f"{s['date']} {s.get('location', '')[:15]}": s['id'] for s in sessions}
+            selected_name = st.selectbox("수정할 모임 선택", list(session_opts.keys()))
+            selected_id = session_opts[selected_name]
+            selected_session = next((s for s in sessions if s['id'] == selected_id), None)
+
+            if selected_session:
+                with st.form("edit_session_form"):
+                    st.markdown(f"**모임 정보 수정**")
+                    ec1, ec2 = st.columns(2)
+                    edit_date = ec1.date_input("날짜", datetime.strptime(selected_session.get('date', str(datetime.now().date())), "%Y-%m-%d"))
+                    edit_loc = ec2.text_input("장소", value=selected_session.get('location', ''))
+                    edit_group = st.text_input("그룹", value=selected_session.get('group_name', ''))
+
+                    col_save, col_del = st.columns(2)
+                    if col_save.form_submit_button("💾 저장", type="primary"):
+                        db.update_session(selected_id, {
+                            "title": f"{edit_date} {edit_loc}",
+                            "date": str(edit_date),
+                            "location": edit_loc,
+                            "group_name": edit_group
+                        })
+                        st.success("모임 수정 완료!")
+                        db.clear_cache()
+                        st.rerun()
+                    if col_del.form_submit_button("🗑️ 삭제", type="secondary"):
+                        db.delete_session(selected_id)
+                        st.warning("모임 삭제됨")
+                        db.clear_cache()
+                        st.rerun()
     else:
         st.info("모임이 없습니다.")
 
@@ -250,8 +289,6 @@ def render_session_tab():
                 c1, c2 = st.columns(2)
                 s_date = c1.date_input("날짜", datetime.now())
                 s_loc = c2.text_input("장소", "영등포다목적체육관")
-                s_courts = c1.number_input("코트 수", 1, 10, 4)
-                s_names = c2.text_input("코트 번호", "5,6,7,9")
                 s_group = st.text_input("그룹", DEFAULT_GROUP)
 
                 if st.form_submit_button("생성", type="primary"):
@@ -259,9 +296,7 @@ def render_session_tab():
                         "title": f"{s_date} {s_loc}",
                         "date": str(s_date),
                         "location": s_loc,
-                        "group_name": s_group,
-                        "courts_num": s_courts,
-                        "courts_names": s_names
+                        "group_name": s_group
                     })
                     st.success("모임 생성 완료!")
                     st.session_state.show_session = False
