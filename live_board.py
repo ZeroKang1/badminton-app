@@ -13,21 +13,22 @@ REFRESH_INTERVAL = 10  # 자동 새로고침 간격 (초)
 # CSS 스타일 정의 (3가지 모드) - 최적화
 # ============================================================
 
-COMMON_STYLE = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-* { font-family: 'Noto Sans KR', sans-serif; }
-.refresh-info {
-    position: fixed; top: 10px; right: 10px;
-    background: rgba(0,0,0,0.7); color: #4caf50;
-    padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000;
-}
-</style>
-"""
+def get_common_style():
+    return """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+    * { font-family: 'Noto Sans KR', sans-serif; }
+    .refresh-info {
+        position: fixed; top: 10px; right: 10px;
+        background: rgba(0,0,0,0.7); color: #4caf50;
+        padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 1000;
+    }
+    </style>
+    """
 
 def get_magnet_style():
     """자석모드 CSS"""
-    return COMMON_STYLE + """
+    return get_common_style() + """
     <style>
     :root {
         --board-bg: #2d5a27;
@@ -76,7 +77,7 @@ def get_magnet_style():
 
 def get_list_style():
     """리스트모드 CSS"""
-    return COMMON_STYLE + """
+    return get_common_style() + """
     <style>
     .stApp { background-color: #f5f5f5; }
     .live-header {
@@ -92,7 +93,7 @@ def get_list_style():
 
 def get_led_style():
     """전광판모드 CSS"""
-    return COMMON_STYLE + """
+    return get_common_style() + """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
     .stApp { background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%); }
@@ -241,17 +242,9 @@ def show_live():
     else:
         render_led_mode(session_id, session_info)
 
-    # ===== 자동 새로고침 =====
-    if st.session_state.auto_refresh:
-        time.sleep(0.1)  # 렌더링 완료 대기
-        # JavaScript 기반 자동 새로고침
-        st.markdown(f"""
-        <script>
-            setTimeout(function() {{
-                window.location.reload();
-            }}, {REFRESH_INTERVAL * 1000});
-        </script>
-        """, unsafe_allow_html=True)
+    # ===== 자동 새로고침 (Streamlit 네이티브 방식) =====
+    # 참고: st.rerun() 자동 새로고침은 streamlit-autorefresh 패키지 필요
+    # 수동 새로고침 버튼으로 대체
 
 # ============================================================
 # 자석 모드
