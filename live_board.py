@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import database as db
 from datetime import datetime
 import time
@@ -96,6 +97,31 @@ def get_led_style():
 </style>"""
 
 # ============================================================
+# CSS 주입 함수 (JavaScript 사용)
+# ============================================================
+
+def inject_css(css_content):
+    """JavaScript를 통해 CSS를 부모 문서에 주입"""
+    # style 태그 제거 (순수 CSS만 추출)
+    css_clean = css_content.replace('<style>', '').replace('</style>', '').strip()
+
+    js_code = f"""
+    <script>
+        (function() {{
+            var existingStyle = window.parent.document.getElementById('custom-css');
+            if (existingStyle) {{
+                existingStyle.remove();
+            }}
+            var style = document.createElement('style');
+            style.id = 'custom-css';
+            style.textContent = `{css_clean}`;
+            window.parent.document.head.appendChild(style);
+        }})();
+    </script>
+    """
+    components.html(js_code, height=0)
+
+# ============================================================
 # 헬퍼 함수
 # ============================================================
 
@@ -151,18 +177,14 @@ def show_live():
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = datetime.now()
 
-    # 모드별 CSS (st.html 사용)
+    # 모드별 CSS (JavaScript 주입)
     mode = st.session_state.view_mode
     if mode == "magnet":
-        st.html(get_magnet_style())
+        inject_css(get_magnet_style())
     elif mode == "list":
-        st.html(get_list_style())
+        inject_css(get_list_style())
     else:
-        st.html(get_led_style())
-
-    # 자동 새로고침 표시
-    if st.session_state.auto_refresh:
-        st.html(f'<div class="refresh-info">🔄 자동갱신 {REFRESH_INTERVAL}초</div>')
+        inject_css(get_led_style())
 
     # ===== 상단 컨트롤 =====
     col1, col2, col3, col4 = st.columns([2, 1.5, 1, 0.5])
