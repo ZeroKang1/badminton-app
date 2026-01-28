@@ -346,7 +346,7 @@ def render_list_mode(session_id, session_info):
     st.markdown("#### 🏟️ 코트 현황")
 
     court_data = []
-    for i in range(1, courts_num + 1):
+    for i in range(1, courts_count + 1):
         players = courts.get(i, [])
         if players:
             team_a = ", ".join([db.format_player_name(p.get('members', {})) for p in players[:2]])
@@ -359,7 +359,7 @@ def render_list_mode(session_id, session_info):
     st.dataframe(pd.DataFrame(court_data), use_container_width=True, hide_index=True)
 
     # 코트 버튼
-    btn_cols = st.columns(courts_num)
+    btn_cols = st.columns(courts_count)
     for idx, col in enumerate(btn_cols):
         court_num = idx + 1
         with col:
@@ -402,7 +402,7 @@ def render_list_mode(session_id, session_info):
 def render_led_mode(session_id, session_info):
     """전광판 모드 - 최적화"""
 
-    courts_num = session_info.get('courts_num', 4)
+    courts_count = session_info.get('courts_count', 4) or 4
     all_participants = db.get_participants(session_id)
 
     playing = [p for p in all_participants if p.get('status') == 'playing']
@@ -417,7 +417,7 @@ def render_led_mode(session_id, session_info):
         courts[c].append(p)
 
     # ===== 코트 =====
-    cols = st.columns(min(courts_num, 4))
+    cols = st.columns(min(courts_count, 4))
 
     for idx, col in enumerate(cols):
         court_num = idx + 1
