@@ -2,6 +2,7 @@ import streamlit as st
 import database as db
 from datetime import datetime
 import time
+import pandas as pd
 
 # ============================================================
 # 설정
@@ -36,11 +37,11 @@ def render_magnet(member, mode="magnet"):
 
     if mode == "magnet":
         bg = "linear-gradient(145deg, #42a5f5, #1565c0)" if gender == "남" else "linear-gradient(145deg, #ef5350, #c62828)"
-        return f'''<div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+        return f'''<div style="display:inline-flex; flex-direction:row; align-items:center; justify-content:center;
             width:75px; height:55px; border-radius:8px; margin:3px; font-weight:600;
             background:{bg}; color:white; box-shadow:2px 2px 6px rgba(0,0,0,0.4);">
-            <span style="font-size:12px; font-weight:700;">{name}</span>
-            <span style="font-size:10px; opacity:0.9;">{birth}{rank}</span></div>'''
+            <span style="font-size:15px; font-weight:700;">{name}</span>
+            <span style="font-size:15px; opacity:0.9;">{birth}{rank}</span></div>'''
     elif mode == "list":
         bg = "#e3f2fd" if gender == "남" else "#fce4ec"
         color = "#1565c0" if gender == "남" else "#c62828"
@@ -192,7 +193,7 @@ def render_magnet_mode(session_id, session_info):
 
                 html = f'''
                 <div style="background:#1e3d1a; border:2px solid #4caf50; border-radius:12px; padding:12px; margin:5px; min-height:200px;">
-                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:center;">{court_name}번</div>
+                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:left;">{court_name}번</div>
                     <div style="color:#ffeb3b; font-size:13px; text-align:center; font-family:monospace;">⏱️ {elapsed}분</div>
                     <div style="display:flex; justify-content:center; flex-wrap:wrap;">
                 '''
@@ -215,7 +216,7 @@ def render_magnet_mode(session_id, session_info):
             else:
                 st.markdown(f'''
                 <div style="background:#1e3d1a; border:2px solid #4caf50; border-radius:12px; padding:12px; margin:5px; min-height:200px; opacity:0.5;">
-                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:center;">{court_name}번</div>
+                    <div style="color:#81c784; font-size:16px; font-weight:700; text-align:left;">{court_name}번</div>
                     <div style="text-align:center; padding:30px 0; color:#81c784;">🏸 대기중</div>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -240,7 +241,7 @@ def render_magnet_mode(session_id, session_info):
             birth = str(member.get('birth', ''))[-2:] if member.get('birth') else ''
             rank = member.get('rank', '') or ''
             gender = member.get('gender', '남')
-            bg = "#1976d2" if gender == "남" else "#d32f2f"
+            bg = "#00ccFF" if gender == "남" else "#FF66FF"
             html += f'<span style="background:{bg}; color:white; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:600; display:inline-block;">{name}{birth}{rank}</span>'
         html += '</div>'
         st.markdown(html, unsafe_allow_html=True)
@@ -268,33 +269,55 @@ def render_magnet_mode(session_id, session_info):
         st.markdown(f'<div style="background:linear-gradient(145deg, #263238, #1c252a); border-radius:10px; padding:12px; margin:8px 0;"><div style="color:#80cbc4; font-size:13px; font-weight:600; border-bottom:1px solid #37474f; padding-bottom:8px; margin-bottom:10px;">✅ 출석완료 ({len(checked_in)}명)</div></div>', unsafe_allow_html=True)
 
         if checked_in:
-            # 선택 상태를 세션에서 관리
-            if 'selected_players' not in st.session_state:
-                st.session_state.selected_players = set()
+            # 체크박스 리스트용 데이터 생성
+            pool_data = []
+            for i, p in enumerate(checked_in):
+                member = p.get('members', {})
+                gender = member.get('gender', '남')
+                pool_data.append({
+                    "선택": False,
+                    "#": i + 1,
+                    "선수": db.format_player_name(member),
+                    "성별": gender,
+                    "id": p['id']
+                })
 
-            # 간소화된 선택 UI
-            selected = st.multiselect(
-                "선수 선택",
-                options=[p['id'] for p in checked_in],
-                format_func=lambda x: db.format_player_name(next((p.get('members', {}) for p in checked_in if p['id'] == x), {})),
-                label_visibility="collapsed"
+            df = pd.DataFrame(pool_data)
+
+            # 체크박스가 있는 데이터 에디터
+            edited_df = st.data_editor(
+                df[["선택", "#", "선수", "성별"]],
+                column_config={
+                    "선택": st.column_config.CheckboxColumn("✓", default=False, width="small"),
+                    "#": st.column_config.NumberColumn("#", width="small"),
+                    "선수": st.column_config.TextColumn("선수", width="medium"),
+                    "성별": st.column_config.TextColumn("성별", width="small"),
+                },
+                hide_index=True,
+                use_container_width=True,
+                height=min(300, 35 * len(pool_data) + 38),
+                key="magnet_pool_editor"
             )
 
-            if selected:
+            # 선택된 선수 ID 추출
+            selected_indices = edited_df[edited_df["선택"] == True].index.tolist()
+            selected_ids = [pool_data[i]["id"] for i in selected_indices]
+
+            if selected_ids:
                 bc1, bc2, bc3 = st.columns(3)
                 with bc1:
-                    if st.button(f"🎮 대기열 ({len(selected)})", use_container_width=True):
-                        for pid in selected:
+                    if st.button(f"🎮 대기열 ({len(selected_ids)})", use_container_width=True):
+                        for pid in selected_ids:
                             db.assign_to_queue(pid)
                         st.rerun()
                 with bc2:
                     if st.button("☕ 휴식", use_container_width=True):
-                        for pid in selected:
+                        for pid in selected_ids:
                             db.update_participant_status(pid, 'resting')
                         st.rerun()
                 with bc3:
                     if st.button("🚪 퇴장", use_container_width=True):
-                        for pid in selected:
+                        for pid in selected_ids:
                             db.update_participant_status(pid, 'left')
                         st.rerun()
         else:
@@ -323,7 +346,6 @@ def render_magnet_mode(session_id, session_info):
 
 def render_list_mode(session_id, session_info):
     """리스트 모드 - 최적화"""
-    import pandas as pd
 
     courts_count = session_info.get('courts_count', 4) or 4
     all_participants = db.get_participants(session_id)
@@ -375,25 +397,98 @@ def render_list_mode(session_id, session_info):
                         db.assign_to_court(pids)
                         st.rerun()
 
-    # ===== 출석 완료 =====
+    # ===== 출석완료 + 휴식/퇴장 (50:50 분할) =====
     st.markdown("---")
-    st.markdown(f"#### ✅ 출석완료 ({len(checked_in)}명)")
+    left_p = [p for p in all_participants if p.get('status') == 'left']
 
-    if checked_in:
-        data = [{"#": i+1, "선수": db.format_player_name(p.get('members', {})), "성별": p.get('members', {}).get('gender', ''), "급수": p.get('members', {}).get('rank', '')} for i, p in enumerate(checked_in)]
-        st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True, height=200)
+    col_left, col_right = st.columns(2)
 
-    # ===== 휴식/퇴장 =====
-    c1, c2 = st.columns(2)
-    with c1:
+    # 왼쪽: 출석완료 (체크박스 리스트)
+    with col_left:
+        st.markdown(f"#### ✅ 출석완료 ({len(checked_in)}명)")
+
+        if checked_in:
+            # 체크박스 리스트용 데이터 생성
+            list_pool_data = []
+            for i, p in enumerate(checked_in):
+                member = p.get('members', {})
+                list_pool_data.append({
+                    "선택": False,
+                    "#": i + 1,
+                    "선수": db.format_player_name(member),
+                    "성별": member.get('gender', ''),
+                    "급수": member.get('rank', ''),
+                    "id": p['id']
+                })
+
+            df_list = pd.DataFrame(list_pool_data)
+
+            # 체크박스가 있는 데이터 에디터
+            edited_list_df = st.data_editor(
+                df_list[["선택", "#", "선수", "성별", "급수"]],
+                column_config={
+                    "선택": st.column_config.CheckboxColumn("✓", default=False, width="small"),
+                    "#": st.column_config.NumberColumn("#", width="small"),
+                    "선수": st.column_config.TextColumn("선수", width="medium"),
+                    "성별": st.column_config.TextColumn("성별", width="small"),
+                    "급수": st.column_config.TextColumn("급수", width="small"),
+                },
+                hide_index=True,
+                use_container_width=True,
+                height=min(300, 35 * len(list_pool_data) + 38),
+                key="list_pool_editor"
+            )
+
+            # 선택된 선수 ID 추출
+            selected_list_indices = edited_list_df[edited_list_df["선택"] == True].index.tolist()
+            selected_list_ids = [list_pool_data[i]["id"] for i in selected_list_indices]
+
+            if selected_list_ids:
+                bc1, bc2, bc3 = st.columns(3)
+                with bc1:
+                    if st.button(f"🎮 대기열 ({len(selected_list_ids)})", key="list_queue", use_container_width=True):
+                        for pid in selected_list_ids:
+                            db.assign_to_queue(pid)
+                        st.rerun()
+                with bc2:
+                    if st.button("☕ 휴식", key="list_rest", use_container_width=True):
+                        for pid in selected_list_ids:
+                            db.update_participant_status(pid, 'resting')
+                        st.rerun()
+                with bc3:
+                    if st.button("🚪 퇴장", key="list_left", use_container_width=True):
+                        for pid in selected_list_ids:
+                            db.update_participant_status(pid, 'left')
+                        st.rerun()
+        else:
+            st.info("출석 완료된 선수 없음")
+
+    # 오른쪽: 휴식/퇴장
+    with col_right:
+        # 휴식 영역
         st.markdown(f"#### ☕ 휴식 ({len(resting)}명)")
-        for p in resting:
-            st.write(f"• {db.format_player_name(p.get('members', {}))}")
-    with c2:
-        left_p = [p for p in all_participants if p.get('status') == 'left']
+        if resting:
+            for p in resting:
+                member = p.get('members', {})
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.write(f"• {db.format_player_name(member)}")
+                with col_b:
+                    if st.button("↩", key=f"list_back_{p['id']}"):
+                        db.update_participant_status(p['id'], 'checked_in')
+                        st.rerun()
+        else:
+            st.caption("휴식 중인 선수 없음")
+
+        st.markdown("---")
+
+        # 퇴장 영역
         st.markdown(f"#### 🚪 퇴장 ({len(left_p)}명)")
-        for p in left_p:
-            st.write(f"• {db.format_player_name(p.get('members', {}))}")
+        if left_p:
+            for p in left_p:
+                st.write(f"• {db.format_player_name(p.get('members', {}))}")
+        else:
+            st.caption("퇴장한 선수 없음")
 
 # ============================================================
 # 전광판 모드
@@ -434,7 +529,7 @@ def render_led_mode(session_id, session_info):
                 '''
                 for p in players[:2]:
                     html += render_magnet(p.get('members', {}), "led")
-                html += '<div style="font-family:Orbitron,sans-serif; color:#ffff00; font-size:22px; text-align:center; text-shadow:0 0 15px #ffff00; margin:10px 0;">⚡ VS ⚡</div>'
+                html += '<div style="font-family:Orbitron,sans-serif; color:#ffff00; font-size:22px; text-align:center; text-shadow:0 0 15px #ffff00; margin:10px 0;">VS</div>'
                 for p in players[2:4]:
                     html += render_magnet(p.get('members', {}), "led")
                 html += '</div>'
