@@ -211,16 +211,14 @@ def assign_to_court(participant_ids):
     """코트에 배정 (4명) - status만 변경"""
     clear_cache()
     return supabase.table("participants").update({
-        "status": "playing",
-        "game_start_time": datetime.now().isoformat()
+        "status": "playing"
     }).in_("id", participant_ids).execute()
 
 def release_from_court(participant_ids):
     """코트에서 해제 (경기 종료)"""
     clear_cache()
     return supabase.table("participants").update({
-        "status": "checked_in",
-        "game_start_time": None
+        "status": "checked_in"
     }).in_("id", participant_ids).execute()
 
 # ============================================================
