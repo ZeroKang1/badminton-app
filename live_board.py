@@ -233,10 +233,16 @@ def render_magnet_mode(session_id, session_info):
     st.markdown(f"#### ⏳ 대기열 ({len(waiting)}명)")
 
     if waiting:
-        html = '<div style="background:linear-gradient(145deg, #455a64, #37474f); border:2px solid #607d8b; border-radius:10px; padding:15px; margin:5px;"><div style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;">'
+        html = '<div style="display:flex; flex-wrap:wrap; gap:8px; padding:10px;">'
         for p in waiting:
-            html += render_magnet(p.get('members', {}), "magnet")
-        html += '</div></div>'
+            member = p.get('members', {})
+            name = member.get('name', '')
+            birth = str(member.get('birth', ''))[-2:] if member.get('birth') else ''
+            rank = member.get('rank', '') or ''
+            gender = member.get('gender', '남')
+            bg = "#1976d2" if gender == "남" else "#d32f2f"
+            html += f'<span style="background:{bg}; color:white; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:600; display:inline-block;">{name}{birth}{rank}</span>'
+        html += '</div>'
         st.markdown(html, unsafe_allow_html=True)
 
         # 대기열에서 코트 배정 버튼
