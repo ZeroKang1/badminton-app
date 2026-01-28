@@ -163,13 +163,13 @@ def render_magnet_mode(session_id, session_info):
     resting = by_status.get('resting', [])
     left_players = by_status.get('left', [])
 
-    # 코트별 분류
+    # 코트별 분류 (playing 상태를 4명씩 순서대로 코트에 배정)
     courts = {}
-    for p in playing:
-        c = p.get('court_num', 1)
-        if c not in courts:
-            courts[c] = []
-        courts[c].append(p)
+    for i, p in enumerate(playing):
+        court_num = (i // 4) + 1  # 0-3 -> 1번, 4-7 -> 2번, ...
+        if court_num not in courts:
+            courts[court_num] = []
+        courts[court_num].append(p)
 
     # ===== 코트 영역 =====
     st.markdown("#### 🏟️ 코트")
@@ -334,13 +334,13 @@ def render_list_mode(session_id, session_info):
     checked_in = [p for p in all_participants if p.get('status') == 'checked_in']
     resting = [p for p in all_participants if p.get('status') == 'resting']
 
-    # 코트별 분류
+    # 코트별 분류 (playing 상태를 4명씩 순서대로 코트에 배정)
     courts = {}
-    for p in playing:
-        c = p.get('court_num', 1)
-        if c not in courts:
-            courts[c] = []
-        courts[c].append(p)
+    for i, p in enumerate(playing):
+        court_num = (i // 4) + 1
+        if court_num not in courts:
+            courts[court_num] = []
+        courts[court_num].append(p)
 
     # ===== 코트 현황 =====
     st.markdown("#### 🏟️ 코트 현황")
@@ -409,12 +409,13 @@ def render_led_mode(session_id, session_info):
     waiting = [p for p in all_participants if p.get('status') == 'waiting']
     checked_in = [p for p in all_participants if p.get('status') == 'checked_in']
 
+    # 코트별 분류 (playing 상태를 4명씩 순서대로 코트에 배정)
     courts = {}
-    for p in playing:
-        c = p.get('court_num', 1)
-        if c not in courts:
-            courts[c] = []
-        courts[c].append(p)
+    for i, p in enumerate(playing):
+        court_num = (i // 4) + 1
+        if court_num not in courts:
+            courts[court_num] = []
+        courts[court_num].append(p)
 
     # ===== 코트 =====
     cols = st.columns(min(courts_count, 4))
